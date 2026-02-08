@@ -6,3 +6,10 @@
 * pip3 install pycairo
 * pip3 install PyGObject
 * pip3 install adafruit-extended-bus
+
+<ins>If error can't find module lgpio when importing digitalio</ins>
+
+Run:
+
+* sudo apt-get install swig python3-lgpio liblgpio-dev python3-setuptools python-dev-is-python3
+* pip3 install lgpio
