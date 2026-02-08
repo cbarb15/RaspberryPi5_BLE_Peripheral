@@ -16,7 +16,6 @@ import digitalio
 bus = None
 adapter_path = None
 adv_mgr_interface = None
-# spi = board.SPI()
 
 def register_ad_cb():
     print('Advertisement registered OK')
@@ -70,30 +69,45 @@ def register_app_error_cb(error):
    mainloop.quit()
 
 if __name__ == '__main__':
-   dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-   bus = dbus.SystemBus()
-   # we're assuming the adapter supports advertising
-   adapter_path = bluetooth_constants.BLUEZ_NAMESPACE + bluetooth_constants.ADAPTER_NAME
-   print(adapter_path)
+   while(1):
+      print("Running.....")
+      cs = digitalio.DigitalInOut(board.D22)
+      cs.direction = digitalio.Direction.OUTPUT
+      cs.value = True
+      spi = busio.SPI(board.SCK, MOSI=board.MOSI, MISO=board.MISO)
 
-   bus.add_signal_receiver(properties_changed, dbus_interface = bluetooth_constants.DBUS_PROPERTIES, signal_name = "PropertiesChanged", path_keyword = "path")
-   bus.add_signal_receiver(interfaces_added, dbus_interface = bluetooth_constants.DBUS_OM_IFACE, signal_name = "InterfacesAdded")
+      while not spi.try_lock():
+         pass
 
-   adv_mgr_interface = dbus.Interface(bus.get_object(bluetooth_constants.BLUEZ_SERVICE_NAME,adapter_path), bluetooth_constants.ADVERTISING_MANAGER_INTERFACE)
-   # we're only registering one advertisement object so index (arg2) is hard coded as 0
-   adv = Advertisement(bus, 0, 'peripheral')
-   start_advertising()
+      spi.configure(baudrate=5000000, phase=0, polarity=0)
+      cs.value = False
+      spi.write(bytes([0x01, 0xFF]))
+      cs.value = True
+      
+   # dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+   # bus = dbus.SystemBus()
+   # # we're assuming the adapter supports advertising
+   # adapter_path = bluetooth_constants.BLUEZ_NAMESPACE + bluetooth_constants.ADAPTER_NAME
+   # print(adapter_path)
 
-   print("Advertising as "+adv.local_name)
+   # bus.add_signal_receiver(properties_changed, dbus_interface = bluetooth_constants.DBUS_PROPERTIES, signal_name = "PropertiesChanged", path_keyword = "path")
+   # bus.add_signal_receiver(interfaces_added, dbus_interface = bluetooth_constants.DBUS_OM_IFACE, signal_name = "InterfacesAdded")
 
-   mainloop = GLib.MainLoop()
+   # adv_mgr_interface = dbus.Interface(bus.get_object(bluetooth_constants.BLUEZ_SERVICE_NAME,adapter_path), bluetooth_constants.ADVERTISING_MANAGER_INTERFACE)
+   # # we're only registering one advertisement object so index (arg2) is hard coded as 0
+   # adv = Advertisement(bus, 0, 'peripheral')
+   # start_advertising()
 
-   app = JoystickApplication(bus)
-   print('Registering GATT application...')
-   service_manager = dbus.Interface(
-   bus.get_object(bluetooth_constants.BLUEZ_SERVICE_NAME,
-   adapter_path),
-   bluetooth_constants.GATT_MANAGER_INTERFACE)
-   service_manager.RegisterApplication(app.get_path(), {}, reply_handler=register_app_cb, error_handler=register_app_error_cb)
+   # print("Advertising as "+adv.local_name)
+
+   # mainloop = GLib.MainLoop()
+
+   # app = JoystickApplication(bus)
+   # print('Registering GATT application...')
+   # service_manager = dbus.Interface(
+   # bus.get_object(bluetooth_constants.BLUEZ_SERVICE_NAME,
+   # adapter_path),
+   # bluetooth_constants.GATT_MANAGER_INTERFACE)
+   # service_manager.RegisterApplication(app.get_path(), {}, reply_handler=register_app_cb, error_handler=register_app_error_cb)
                                        
-   mainloop.run()
+   # mainloop.run()
