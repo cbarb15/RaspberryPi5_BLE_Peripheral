@@ -9,10 +9,14 @@ from gi.repository import GLib
 sys.path.insert(0, '.')
 from Advertisement import Advertisement
 from JoystickApplication import JoystickApplication
+import board
+import busio
+import digitalio
 
 bus = None
 adapter_path = None
 adv_mgr_interface = None
+# spi = board.SPI()
 
 def register_ad_cb():
     print('Advertisement registered OK')
