@@ -5,3 +5,4 @@
 * pip3 install dbus-python
 * pip3 install pycairo
 * pip3 install PyGObject
+* pip3 install adafruit-extended-bus
