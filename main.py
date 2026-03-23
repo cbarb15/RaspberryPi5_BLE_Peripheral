@@ -19,6 +19,7 @@ bus = None
 adapter_path = None
 adv_mgr_interface = None
 uart_process = None
+mainloop = None
 
 def register_ad_cb():
     print('Advertisement registered OK')
@@ -71,26 +72,7 @@ def register_app_error_cb(error):
    print("Failed to register application: " + str(error))
    mainloop.quit()
 
-def uart_callback():
-   while 1:
-      data = "Hello".encode('utf-8')
-      uart.write(data)
-
-if __name__ == '__main__':   
-   dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-   bus = dbus.SystemBus()
-   global uart
-   uart = serial.Serial("/dev/ttyAMA0", baudrate=115200, timeout=10)
-   uart_process = multiprocessing.Process(target=uart_callback)
-   uart_process.start()
-
-   # we're assuming the adapter supports advertising
-   adapter_path = bluetooth_constants.BLUEZ_NAMESPACE + bluetooth_constants.ADAPTER_NAME
-   print(adapter_path)
-
-   bus.add_signal_receiver(properties_changed, dbus_interface = bluetooth_constants.DBUS_PROPERTIES, signal_name = "PropertiesChanged", path_keyword = "path")
-   bus.add_signal_receiver(interfaces_added, dbus_interface = bluetooth_constants.DBUS_OM_IFACE, signal_name = "InterfacesAdded")
-
+def start_advertising_and_create_GATT_app():
    adv_mgr_interface = dbus.Interface(bus.get_object(bluetooth_constants.BLUEZ_SERVICE_NAME,adapter_path), bluetooth_constants.ADVERTISING_MANAGER_INTERFACE)
    # we're only registering one advertisement object so index (arg2) is hard coded as 0
    adv = Advertisement(bus, 0, 'peripheral')
@@ -98,7 +80,7 @@ if __name__ == '__main__':
 
    print("Advertising as "+adv.local_name)
 
-   mainloop = GLib.MainLoop()
+   # mainloop = GLib.MainLoop()
 
    app = JoystickApplication(bus)
    print('Registering GATT application...')
@@ -107,5 +89,56 @@ if __name__ == '__main__':
    adapter_path),
    bluetooth_constants.GATT_MANAGER_INTERFACE)
    service_manager.RegisterApplication(app.get_path(), {}, reply_handler=register_app_cb, error_handler=register_app_error_cb)
+
+def uart_callback():
+   global uart
+   while 1:
+      bytes_read = uart.read(8)
+      # if len(bytes_read) > 0:
+      print(f'byest read = {bytes_read}') 
+         # data = "Advertise\n".encode('utf-8')
+         # uart.write(data)
+
+if __name__ == '__main__':   
+   dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+   bus = dbus.SystemBus()
+
+   global uart
+   try: 
+      with serial.Serial("/dev/ttyAMA0", baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, bytesize= serial.EIGHTBITS, timeout=1) as uart:
+         uart_process = multiprocessing.Process(target=uart_callback)
+         time.sleep(1.0)
+         uart_process.start()
+   except serial.SerialException as e:
+      serial.close()
+      print(f"Error opening serial port: {e}")
+   finally:
+      uart.close()
+   
+   
+
+   # we're assuming the adapter supports advertising
+   adapter_path = bluetooth_constants.BLUEZ_NAMESPACE + bluetooth_constants.ADAPTER_NAME
+   print(adapter_path)
+
+   bus.add_signal_receiver(properties_changed, dbus_interface = bluetooth_constants.DBUS_PROPERTIES, signal_name = "PropertiesChanged", path_keyword = "path")
+   bus.add_signal_receiver(interfaces_added, dbus_interface = bluetooth_constants.DBUS_OM_IFACE, signal_name = "InterfacesAdded")
+
+   # adv_mgr_interface = dbus.Interface(bus.get_object(bluetooth_constants.BLUEZ_SERVICE_NAME,adapter_path), bluetooth_constants.ADVERTISING_MANAGER_INTERFACE)
+   # # we're only registering one advertisement object so index (arg2) is hard coded as 0
+   # adv = Advertisement(bus, 0, 'peripheral')
+   # start_advertising()
+
+   # print("Advertising as "+adv.local_name)
+
+   mainloop = GLib.MainLoop()
+
+   # app = JoystickApplication(bus)
+   # print('Registering GATT application...')
+   # service_manager = dbus.Interface(
+   # bus.get_object(bluetooth_constants.BLUEZ_SERVICE_NAME,
+   # adapter_path),
+   # bluetooth_constants.GATT_MANAGER_INTERFACE)
+   # service_manager.RegisterApplication(app.get_path(), {}, reply_handler=register_app_cb, error_handler=register_app_error_cb)
                                        
    mainloop.run()
