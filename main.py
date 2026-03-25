@@ -97,16 +97,8 @@ def start_advertising_and_create_GATT_app():
    bluetooth_constants.GATT_MANAGER_INTERFACE)
    service_manager.RegisterApplication(app.get_path(), {}, reply_handler=register_app_cb, error_handler=register_app_error_cb)
 
-def uart_callback():
-   global uart
-   while 1:
-      # if uart.is_open and uart.in_waiting:
-      bytes_read = uart.read_all()
-      print(f'byest read = {bytes_read}')
-         # data = "Advertise\n".encode('utf-8')
-         # uart.write(data)
-
 def async_watch_line_value(chip_path, line_offset, done_fd):
+    global uart
     # Assume a button connecting the pin to ground,
     # so pull it up and provide some debounce.
     with gpiod.request_lines(
@@ -134,6 +126,8 @@ def async_watch_line_value(chip_path, line_offset, done_fd):
                 edge_event = request.read_edge_events()[0]
                 if edge_event.event_type is edge_event.Type.RISING_EDGE:
                   print("Read Uart")
+                  bytes_read = uart.read_all()
+                  print(f'byest read = {bytes_read}')
                
 def uart_intterupt_task():
    print("Starting interupt task")
