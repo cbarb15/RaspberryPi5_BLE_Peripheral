@@ -106,6 +106,13 @@ def uart_callback():
          # data = "Advertise\n".encode('utf-8')
          # uart.write(data)
 
+def edge_type_str(event):
+    if event.event_type is event.Type.RISING_EDGE:
+        return "Rising"
+    if event.event_type is event.Type.FALLING_EDGE:
+        return "Falling"
+    return "Unknown"
+
 def async_watch_line_value(chip_path, line_offset, done_fd):
     # Assume a button connecting the pin to ground,
     # so pull it up and provide some debounce.
