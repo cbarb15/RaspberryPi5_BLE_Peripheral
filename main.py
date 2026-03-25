@@ -106,13 +106,6 @@ def uart_callback():
          # data = "Advertise\n".encode('utf-8')
          # uart.write(data)
 
-def edge_type_str(event):
-    if event.event_type is event.Type.RISING_EDGE:
-        return "Rising"
-    if event.event_type is event.Type.FALLING_EDGE:
-        return "Falling"
-    return "Unknown"
-
 def async_watch_line_value(chip_path, line_offset, done_fd):
     # Assume a button connecting the pin to ground,
     # so pull it up and provide some debounce.
@@ -138,13 +131,10 @@ def async_watch_line_value(chip_path, line_offset, done_fd):
                     # perform any cleanup before exiting...
                     return
                 # handle any edge events
-                for event in request.read_edge_events():
-                    print(
-                        "offset: {}  type: {:<7}  event #{}".format(
-                            event.line_offset, edge_type_str(event), event.line_seqno
-                        )
-                    )
-
+                edge_event = request.read_edge_events()[0]
+                if edge_event.event_type is edge_event.Type.RISING_EDGE:
+                  print("Read Uart")
+               
 def uart_intterupt_task():
    print("Starting interupt task")
    done_fd = os.eventfd(0)
@@ -158,31 +148,12 @@ def uart_intterupt_task():
 if __name__ == '__main__':   
    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
    bus = dbus.SystemBus()
-
-   # chip = gpiod.Chip(chip_path)   
-   # intterrupt_line_info = chip.get_line_info(23)
-   # print(intterrupt_line_info)
-   # interrupt_line = gpiod.request_lines(chip_path, consumer=None, config=
-   #    LineSettings(direction=Direction.OUTPUT)
-   # )
-   # print(f"Line {interrupt_line}")
-   # line_offset = 23
-   # with gpiod.request_lines(
-   #      chip_path,
-   #      consumer="get-line-value",
-   #      config={line_offset: LineSettings(direction=Direction.INPUT, output_value=Value.INACTIVE, active_low=True)},
-   #  ) as request:
-   #      print(chip.get_line_info(23))
-
-   uart_task = multiprocessing.Process(target=uart_intterupt_task)
-   uart_task.start()
-
+   
    global uart
    try: 
-      with serial.Serial("/dev/ttyAMA0", baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, bytesize= serial.EIGHTBITS, timeout=1) as uart:
-         uart_process = multiprocessing.Process(target=uart_callback)
-         time.sleep(1.0)
-         # uart_process.start()
+      uart = serial.Serial("/dev/ttyAMA0", baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, bytesize= serial.EIGHTBITS, timeout=1)
+      uart_task = multiprocessing.Process(target=uart_intterupt_task)
+      uart_task.start()
    except serial.SerialException as e:
       serial.close()
       print(f"Error opening serial port: {e}")
