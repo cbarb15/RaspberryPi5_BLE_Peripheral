@@ -6,6 +6,7 @@
 * pip3 install pycairo
 * pip3 install PyGObject
 * pip3 install adafruit-extended-bus
+* pip3 install gpiod
 
 <ins>If error can't find module lgpio when importing digitalio</ins>
 
