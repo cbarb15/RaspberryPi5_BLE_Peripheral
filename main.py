@@ -145,14 +145,12 @@ if __name__ == '__main__':
    
    global uart
    try: 
-      uart = serial.Serial("/dev/ttyAMA0", baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, bytesize= serial.EIGHTBITS, timeout=1)
+      # uart = serial.Serial("/dev/ttyAMA0", baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, bytesize= serial.EIGHTBITS, timeout=1)
       uart_task = multiprocessing.Process(target=uart_intterupt_task)
       uart_task.start()
    except serial.SerialException as e:
       serial.close()
       print(f"Error opening serial port: {e}")
-   finally:
-      uart.close()
 
    # we're assuming the adapter supports advertising
    adapter_path = bluetooth_constants.BLUEZ_NAMESPACE + bluetooth_constants.ADAPTER_NAME
@@ -161,21 +159,21 @@ if __name__ == '__main__':
    bus.add_signal_receiver(properties_changed, dbus_interface = bluetooth_constants.DBUS_PROPERTIES, signal_name = "PropertiesChanged", path_keyword = "path")
    bus.add_signal_receiver(interfaces_added, dbus_interface = bluetooth_constants.DBUS_OM_IFACE, signal_name = "InterfacesAdded")
 
-   # adv_mgr_interface = dbus.Interface(bus.get_object(bluetooth_constants.BLUEZ_SERVICE_NAME,adapter_path), bluetooth_constants.ADVERTISING_MANAGER_INTERFACE)
-   # # we're only registering one advertisement object so index (arg2) is hard coded as 0
-   # adv = Advertisement(bus, 0, 'peripheral')
-   # start_advertising()
+   adv_mgr_interface = dbus.Interface(bus.get_object(bluetooth_constants.BLUEZ_SERVICE_NAME,adapter_path), bluetooth_constants.ADVERTISING_MANAGER_INTERFACE)
+   # we're only registering one advertisement object so index (arg2) is hard coded as 0
+   adv = Advertisement(bus, 0, 'peripheral')
+   start_advertising()
 
-   # print("Advertising as "+adv.local_name)
+   print("Advertising as "+adv.local_name)
 
    mainloop = GLib.MainLoop()
 
-   # app = JoystickApplication(bus)
-   # print('Registering GATT application...')
-   # service_manager = dbus.Interface(
-   # bus.get_object(bluetooth_constants.BLUEZ_SERVICE_NAME,
-   # adapter_path),
-   # bluetooth_constants.GATT_MANAGER_INTERFACE)
-   # service_manager.RegisterApplication(app.get_path(), {}, reply_handler=register_app_cb, error_handler=register_app_error_cb)
+   app = JoystickApplication(bus)
+   print('Registering GATT application...')
+   service_manager = dbus.Interface(
+   bus.get_object(bluetooth_constants.BLUEZ_SERVICE_NAME,
+   adapter_path),
+   bluetooth_constants.GATT_MANAGER_INTERFACE)
+   service_manager.RegisterApplication(app.get_path(), {}, reply_handler=register_app_cb, error_handler=register_app_error_cb)
                                        
    mainloop.run()
