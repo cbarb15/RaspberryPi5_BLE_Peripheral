@@ -23,7 +23,6 @@ import os
 
 bus = None
 adapter_path = None
-adv_mgr_interface = None
 uart_process = None
 mainloop = None
 chip_path = "/dev/gpiochip0"
@@ -80,6 +79,14 @@ def register_app_error_cb(error):
    mainloop.quit()
 
 def start_advertising_and_create_GATT_app():
+   global adv
+   global adv_mgr_interface
+   adapter_path = bluetooth_constants.BLUEZ_NAMESPACE + bluetooth_constants.ADAPTER_NAME
+   print(adapter_path)
+
+   bus.add_signal_receiver(properties_changed, dbus_interface = bluetooth_constants.DBUS_PROPERTIES, signal_name = "PropertiesChanged", path_keyword = "path")
+   bus.add_signal_receiver(interfaces_added, dbus_interface = bluetooth_constants.DBUS_OM_IFACE, signal_name = "InterfacesAdded")
+
    adv_mgr_interface = dbus.Interface(bus.get_object(bluetooth_constants.BLUEZ_SERVICE_NAME,adapter_path), bluetooth_constants.ADVERTISING_MANAGER_INTERFACE)
    # we're only registering one advertisement object so index (arg2) is hard coded as 0
    adv = Advertisement(bus, 0, 'peripheral')
@@ -87,7 +94,7 @@ def start_advertising_and_create_GATT_app():
 
    print("Advertising as "+adv.local_name)
 
-   # mainloop = GLib.MainLoop()
+   mainloop = GLib.MainLoop()
 
    app = JoystickApplication(bus)
    print('Registering GATT application...')
@@ -96,6 +103,8 @@ def start_advertising_and_create_GATT_app():
    adapter_path),
    bluetooth_constants.GATT_MANAGER_INTERFACE)
    service_manager.RegisterApplication(app.get_path(), {}, reply_handler=register_app_cb, error_handler=register_app_error_cb)
+
+   mainloop.run()
 
 def async_watch_line_value(chip_path, line_offset, done_fd):
     global uart
@@ -126,8 +135,8 @@ def async_watch_line_value(chip_path, line_offset, done_fd):
                 edge_event = request.read_edge_events()[0]
                 if edge_event.event_type is edge_event.Type.RISING_EDGE:
                   print("Read Uart")
-                  bytes_read = uart.read_all()
-                  print(f'byest read = {bytes_read}')
+                  start_advertising_and_create_GATT_app()
+            
                
 def uart_intterupt_task():
    print("Starting interupt task")
@@ -145,35 +154,12 @@ if __name__ == '__main__':
    
    global uart
    try: 
-      # uart = serial.Serial("/dev/ttyAMA0", baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, bytesize= serial.EIGHTBITS, timeout=1)
+      uart = serial.Serial("/dev/ttyAMA0", baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, bytesize= serial.EIGHTBITS, timeout=1)
       uart_task = multiprocessing.Process(target=uart_intterupt_task)
       uart_task.start()
    except serial.SerialException as e:
       serial.close()
       print(f"Error opening serial port: {e}")
 
-   # we're assuming the adapter supports advertising
-   adapter_path = bluetooth_constants.BLUEZ_NAMESPACE + bluetooth_constants.ADAPTER_NAME
-   print(adapter_path)
-
-   bus.add_signal_receiver(properties_changed, dbus_interface = bluetooth_constants.DBUS_PROPERTIES, signal_name = "PropertiesChanged", path_keyword = "path")
-   bus.add_signal_receiver(interfaces_added, dbus_interface = bluetooth_constants.DBUS_OM_IFACE, signal_name = "InterfacesAdded")
-
-   adv_mgr_interface = dbus.Interface(bus.get_object(bluetooth_constants.BLUEZ_SERVICE_NAME,adapter_path), bluetooth_constants.ADVERTISING_MANAGER_INTERFACE)
-   # we're only registering one advertisement object so index (arg2) is hard coded as 0
-   adv = Advertisement(bus, 0, 'peripheral')
-   start_advertising()
-
-   print("Advertising as "+adv.local_name)
-
-   mainloop = GLib.MainLoop()
-
-   app = JoystickApplication(bus)
-   print('Registering GATT application...')
-   service_manager = dbus.Interface(
-   bus.get_object(bluetooth_constants.BLUEZ_SERVICE_NAME,
-   adapter_path),
-   bluetooth_constants.GATT_MANAGER_INTERFACE)
-   service_manager.RegisterApplication(app.get_path(), {}, reply_handler=register_app_cb, error_handler=register_app_error_cb)
-                                       
-   mainloop.run()
+   while 1:
+      pass
