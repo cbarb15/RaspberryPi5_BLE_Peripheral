@@ -20,6 +20,8 @@ from gpiod.line_settings import LineSettings
 import select
 from datetime import timedelta
 import os
+from BatteryMonitor import BatteryMonitor
+
 
 bus = None
 adapter_path = None
@@ -148,9 +150,73 @@ def uart_intterupt_task():
       print("background thread exiting...")
 
 
+def monitor_battery(request):
+   failure_counter = 0
+
+   while True:
+      # Read GPIO value
+      values = request.get_values()
+
+      ac_power_state = values[PLD_PIN] if isinstance(values, dict) else values[0]
+        
+      # Read battery information
+      voltage = readVoltage(bus)
+      battery_status = get_battery_status(voltage)
+      capacity = readCapacity(bus)
+        
+      # Display current status
+      print(f"Battery: {capacity:.1f}% ({battery_status}), Voltage: {voltage:.2f}V, AC Power: {'Plugged in' if ac_power_state == gpiod.line.Value.ACTIVE else 'Unplugged'}")
+        
+      # Check conditions
+      current_failures = 0
+        
+      if ac_power_state != gpiod.line.Value.ACTIVE:
+         current_failures += 1
+        
+      if capacity < 20:
+         current_failures += 1
+        
+      if voltage < 3.20:
+         current_failures += 1
+        
+      # Update failure counter
+      if current_failures > 0:
+         failure_counter += 1
+      else:
+         failure_counter = 0
+        
+      # Check if shutdown threshold reached
+      if failure_counter >= SHUTDOWN_THRESHOLD:
+         shutdown_reason = []
+         if capacity < 20:
+               shutdown_reason.append("critical battery level")
+         if voltage < 3.20:
+               shutdown_reason.append("critical battery voltage")
+         if ac_power_state != gpiod.line.Value.ACTIVE:
+               shutdown_reason.append("AC power loss")
+            
+         reason_text = " and ".join(shutdown_reason)
+         print(f"Critical condition met due to {reason_text}. Initiating shutdown.")
+            
+         # Uncomment to enable actual shutdown
+         # call("sudo nohup shutdown -h now", shell=True)
+         # break
+        
+      # Wait for next monitoring interval
+      time.sleep(MONITOR_INTERVAL)
+
+
+def battery_monitor_task():
+   battery_monitor = BatteryMonitor()
+
+   # monitor_battery(request)
+
 if __name__ == '__main__':   
    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
    bus = dbus.SystemBus()
+   
+   bat_monitor_task = multiprocessing.Process(target=battery_monitor_task)
+   bat_monitor_task.start()
    
    global uart
    try: 
