@@ -22,6 +22,9 @@ from datetime import timedelta
 import os
 from BatteryMonitor import BatteryMonitor
 
+SHUTDOWN_THRESHOLD = 3  # Number of consecutive failures required for shutdown
+SLEEP_TIME = 60  # Time in seconds to wait between failure checks
+MONITOR_INTERVAL = 3  # Seconds between monitoring checks
 
 bus = None
 adapter_path = None
@@ -150,19 +153,21 @@ def uart_intterupt_task():
       print("background thread exiting...")
 
 
-def monitor_battery(request):
+def battery_monitor_task():
+   battery_monitor = BatteryMonitor()
+
    failure_counter = 0
 
    while True:
       # Read GPIO value
-      values = request.get_values()
+      values = battery_monitor.request.get_values()
 
-      ac_power_state = values[PLD_PIN] if isinstance(values, dict) else values[0]
+      ac_power_state = values[battery_monitor.PLD_PIN] if isinstance(values, dict) else values[0]
         
       # Read battery information
-      voltage = readVoltage(bus)
-      battery_status = get_battery_status(voltage)
-      capacity = readCapacity(bus)
+      voltage = battery_monitor.readVoltage()
+      battery_status = battery_monitor.get_battery_status(voltage)
+      capacity = battery_monitor.readCapacity()
         
       # Display current status
       print(f"Battery: {capacity:.1f}% ({battery_status}), Voltage: {voltage:.2f}V, AC Power: {'Plugged in' if ac_power_state == gpiod.line.Value.ACTIVE else 'Unplugged'}")
@@ -205,12 +210,6 @@ def monitor_battery(request):
       # Wait for next monitoring interval
       time.sleep(MONITOR_INTERVAL)
 
-
-def battery_monitor_task():
-   battery_monitor = BatteryMonitor()
-
-   # monitor_battery(request)
-
 if __name__ == '__main__':   
    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
    bus = dbus.SystemBus()
@@ -218,14 +217,14 @@ if __name__ == '__main__':
    bat_monitor_task = multiprocessing.Process(target=battery_monitor_task)
    bat_monitor_task.start()
    
-   global uart
-   try: 
-      uart = serial.Serial("/dev/ttyAMA0", baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, bytesize= serial.EIGHTBITS, timeout=1)
-      uart_task = multiprocessing.Process(target=uart_intterupt_task)
-      uart_task.start()
-   except serial.SerialException as e:
-      serial.close()
-      print(f"Error opening serial port: {e}")
+   # global uart
+   # try: 
+   #    uart = serial.Serial("/dev/ttyAMA0", baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, bytesize= serial.EIGHTBITS, timeout=1)
+   #    uart_task = multiprocessing.Process(target=uart_intterupt_task)
+   #    uart_task.start()
+   # except serial.SerialException as e:
+   #    serial.close()
+   #    print(f"Error opening serial port: {e}")
 
    while 1:
       pass
