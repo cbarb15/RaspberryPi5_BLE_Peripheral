@@ -162,21 +162,6 @@ def uart_intterupt_task():
          if edge_event.event_type is edge_event.Type.RISING_EDGE:
             print("Read Uart")
             start_advertising_and_create_GATT_app()
-   # try:
-   #    async_watch_line_value("/dev/gpiochip0", 23, done_fd)
-   # except OSError as ex:
-   #    print(ex, "\nCustomise the example configuration to suit your situation")
-   #    print("background thread exiting...")
-
-
-# pid = str(os.getpid())
-#          pidfile = "/tmp/X1200.pid"
-#          if os.path.isfile(pidfile):
-#             print("Exit one")
-#             exit(1)
-#          else:
-#             with open(pidfile, 'w') as f:
-#                f.write(pid)
 
 def battery_monitor_task():
    global battery_line_request

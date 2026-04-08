@@ -17,44 +17,6 @@ class BatteryMonitor:
          # Initialize I2C bus
       self.bus = smbus2.SMBus(1)
       self.address = 0x36
-      print("Init Battery Monitor")
-
-         # Initialize GPIO
-         # print(f"Starting Battery Monitor Request")
-         # self.PLD_PIN = 6
-         # self.request = gpiod.request_lines(
-         #    '/dev/gpiochip0',
-         #    consumer="PLD",
-         #    config={
-         #          self.PLD_PIN: gpiod.LineSettings(direction=Direction.INPUT),
-         #    }
-         # )
-
-      # except KeyboardInterrupt:
-      #    pass
-
-      # except Exception as e:
-      #    print(f"exception {e}")
-      #    traceback.print_exc()
-      #    pass
-
-      # finally:
-      #    # Cleanup
-      #    try:
-      #       if 'request' in locals():
-      #             self.request.release()
-      #    except:
-      #       pass
-         
-      #    try:
-      #       if 'bus' in locals():
-      #             self.bus.close()
-      #    except:
-      #       pass
-         
-      #    if os.path.isfile(pidfile):
-      #       os.unlink(pidfile)
-
 
    def readVoltage(self):
       try:
