@@ -11,54 +11,49 @@ import multiprocessing
 
 class BatteryMonitor:
 
-   def __init__(self):
-      pid = str(os.getpid())
-      pidfile = "/tmp/X1200.pid"
-      if os.path.isfile(pidfile):
-         exit(1)
-      else:
-         with open(pidfile, 'w') as f:
-            f.write(pid)
-
-      try:
+   def __init__(self, request):
+      self.request = request
+      # try:
          # Initialize I2C bus
-         self.bus = smbus2.SMBus(1)
-         self.address = 0x36
-         
+      self.bus = smbus2.SMBus(1)
+      self.address = 0x36
+      print("Init Battery Monitor")
+
          # Initialize GPIO
-         self.PLD_PIN = 6
-         self.request = gpiod.request_lines(
-            '/dev/gpiochip0',
-            consumer="PLD",
-            config={
-                  self.PLD_PIN: gpiod.LineSettings(direction=Direction.INPUT),
-            }
-         )
+         # print(f"Starting Battery Monitor Request")
+         # self.PLD_PIN = 6
+         # self.request = gpiod.request_lines(
+         #    '/dev/gpiochip0',
+         #    consumer="PLD",
+         #    config={
+         #          self.PLD_PIN: gpiod.LineSettings(direction=Direction.INPUT),
+         #    }
+         # )
 
-      except KeyboardInterrupt:
-         pass
+      # except KeyboardInterrupt:
+      #    pass
 
-      except Exception as e:
-         print(f"exception {e}")
-         traceback.print_exc()
-         pass
+      # except Exception as e:
+      #    print(f"exception {e}")
+      #    traceback.print_exc()
+      #    pass
 
-      finally:
-         # Cleanup
-         try:
-            if 'request' in locals():
-                  self.request.release()
-         except:
-            pass
+      # finally:
+      #    # Cleanup
+      #    try:
+      #       if 'request' in locals():
+      #             self.request.release()
+      #    except:
+      #       pass
          
-         try:
-            if 'bus' in locals():
-                  self.bus.close()
-         except:
-            pass
+      #    try:
+      #       if 'bus' in locals():
+      #             self.bus.close()
+      #    except:
+      #       pass
          
-         if os.path.isfile(pidfile):
-            os.unlink(pidfile)
+      #    if os.path.isfile(pidfile):
+      #       os.unlink(pidfile)
 
 
    def readVoltage(self):

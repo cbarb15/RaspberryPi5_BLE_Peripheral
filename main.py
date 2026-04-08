@@ -144,18 +144,45 @@ def async_watch_line_value(chip_path, line_offset, done_fd):
             
                
 def uart_intterupt_task():
+   global uart_line_request
    print("Starting interupt task")
    done_fd = os.eventfd(0)
-   try:
-      async_watch_line_value("/dev/gpiochip0", 23, done_fd)
-   except OSError as ex:
-      print(ex, "\nCustomise the example configuration to suit your situation")
-      print("background thread exiting...")
+   poll = select.poll()
+   poll.register(uart_line_request.fd, select.POLLIN)
+   # Other fds could be registered with the poll and be handled
+   # separately using the return value (fd, event) from poll():
+   poll.register(done_fd, select.POLLIN)
+   while True:
+      for fd, _event in poll.poll():
+         if fd == done_fd:
+            # perform any cleanup before exiting...
+            return
+         # handle any edge events
+         edge_event = uart_line_request.read_edge_events()[0]
+         if edge_event.event_type is edge_event.Type.RISING_EDGE:
+            print("Read Uart")
+            start_advertising_and_create_GATT_app()
+   # try:
+   #    async_watch_line_value("/dev/gpiochip0", 23, done_fd)
+   # except OSError as ex:
+   #    print(ex, "\nCustomise the example configuration to suit your situation")
+   #    print("background thread exiting...")
 
+
+# pid = str(os.getpid())
+#          pidfile = "/tmp/X1200.pid"
+#          if os.path.isfile(pidfile):
+#             print("Exit one")
+#             exit(1)
+#          else:
+#             with open(pidfile, 'w') as f:
+#                f.write(pid)
 
 def battery_monitor_task():
-   battery_monitor = BatteryMonitor()
+   global battery_line_request
+   battery_monitor = BatteryMonitor(battery_line_request)
 
+   print(f"battery monitor request {battery_monitor.request}")
    failure_counter = 0
 
    while True:
@@ -214,17 +241,44 @@ if __name__ == '__main__':
    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
    bus = dbus.SystemBus()
    
+   global uart_line_request
+   global battery_line_request
+
+   done_fd = os.eventfd(0)
+   uart_line_request = gpiod.request_lines(
+         chip_path,
+         consumer="async-watch-line-value",
+         config={
+               23: gpiod.LineSettings(
+                  edge_detection=Edge.BOTH,
+                  bias=Bias.PULL_UP,
+                  debounce_period=timedelta(milliseconds=10),
+               )
+         },
+      )
+
+   print(f"uart request {uart_line_request}")
+
+   battery_line_request = gpiod.request_lines(
+               '/dev/gpiochip0',
+               consumer="PLD",
+               config={
+                     6 : gpiod.LineSettings(direction=Direction.INPUT),
+               }
+            )
+
+   print(battery_line_request)
    bat_monitor_task = multiprocessing.Process(target=battery_monitor_task)
    bat_monitor_task.start()
    
-   # global uart
-   # try: 
-   #    uart = serial.Serial("/dev/ttyAMA0", baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, bytesize= serial.EIGHTBITS, timeout=1)
-   #    uart_task = multiprocessing.Process(target=uart_intterupt_task)
-   #    uart_task.start()
-   # except serial.SerialException as e:
-   #    serial.close()
-   #    print(f"Error opening serial port: {e}")
+   global uart
+   try: 
+      # uart = serial.Serial("/dev/ttyAMA0", baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, bytesize= serial.EIGHTBITS, timeout=1)
+      uart_task = multiprocessing.Process(target=uart_intterupt_task)
+      uart_task.start()
+   except serial.SerialException as e:
+      serial.close()
+      print(f"Error opening serial port: {e}")
 
    while 1:
       pass
