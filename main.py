@@ -21,6 +21,7 @@ import select
 from datetime import timedelta
 import os
 from BatteryMonitor import BatteryMonitor
+import struct
 
 SHUTDOWN_THRESHOLD = 3  # Number of consecutive failures required for shutdown
 SLEEP_TIME = 60  # Time in seconds to wait between failure checks
@@ -165,6 +166,7 @@ def uart_intterupt_task():
 
 def battery_monitor_task():
    global battery_line_request
+   global uart
    battery_monitor = BatteryMonitor(battery_line_request)
 
    print(f"battery monitor request {battery_monitor.request}")
@@ -180,44 +182,10 @@ def battery_monitor_task():
       voltage = battery_monitor.readVoltage()
       battery_status = battery_monitor.get_battery_status(voltage)
       capacity = battery_monitor.readCapacity()
-        
+      uart.write((int(22)).to_bytes(2, byteorder='big'))
+      
       # Display current status
-      print(f"Battery: {capacity:.1f}% ({battery_status}), Voltage: {voltage:.2f}V, AC Power: {'Plugged in' if ac_power_state == gpiod.line.Value.ACTIVE else 'Unplugged'}")
-        
-      # Check conditions
-      current_failures = 0
-        
-      if ac_power_state != gpiod.line.Value.ACTIVE:
-         current_failures += 1
-        
-      if capacity < 20:
-         current_failures += 1
-        
-      if voltage < 3.20:
-         current_failures += 1
-        
-      # Update failure counter
-      if current_failures > 0:
-         failure_counter += 1
-      else:
-         failure_counter = 0
-        
-      # Check if shutdown threshold reached
-      if failure_counter >= SHUTDOWN_THRESHOLD:
-         shutdown_reason = []
-         if capacity < 20:
-               shutdown_reason.append("critical battery level")
-         if voltage < 3.20:
-               shutdown_reason.append("critical battery voltage")
-         if ac_power_state != gpiod.line.Value.ACTIVE:
-               shutdown_reason.append("AC power loss")
-            
-         reason_text = " and ".join(shutdown_reason)
-         print(f"Critical condition met due to {reason_text}. Initiating shutdown.")
-            
-         # Uncomment to enable actual shutdown
-         # call("sudo nohup shutdown -h now", shell=True)
-         # break
+      # print(f"Battery: {capacity:.1f}% ({battery_status}), Voltage: {voltage:.2f}V, AC Power: {'Plugged in' if ac_power_state == gpiod.line.Value.ACTIVE else 'Unplugged'}")
         
       # Wait for next monitoring interval
       time.sleep(MONITOR_INTERVAL)
@@ -228,6 +196,7 @@ if __name__ == '__main__':
    
    global uart_line_request
    global battery_line_request
+   global uart
 
    done_fd = os.eventfd(0)
    uart_line_request = gpiod.request_lines(
@@ -242,8 +211,6 @@ if __name__ == '__main__':
          },
       )
 
-   print(f"uart request {uart_line_request}")
-
    battery_line_request = gpiod.request_lines(
                '/dev/gpiochip0',
                consumer="PLD",
@@ -252,18 +219,19 @@ if __name__ == '__main__':
                }
             )
 
-   print(battery_line_request)
-   bat_monitor_task = multiprocessing.Process(target=battery_monitor_task)
-   bat_monitor_task.start()
-   
-   global uart
    try: 
-      # uart = serial.Serial("/dev/ttyAMA0", baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, bytesize= serial.EIGHTBITS, timeout=1)
-      uart_task = multiprocessing.Process(target=uart_intterupt_task)
-      uart_task.start()
+      uart = serial.Serial("/dev/ttyAMA0", baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, bytesize= serial.EIGHTBITS, timeout=1)
    except serial.SerialException as e:
       serial.close()
       print(f"Error opening serial port: {e}")
+
+   uart_task = multiprocessing.Process(target=uart_intterupt_task)
+   print("Starting UART Task")
+   uart_task.start()
+
+   bat_monitor_task = multiprocessing.Process(target=battery_monitor_task)
+   print("Starting battery monitoring task")
+   bat_monitor_task.start()
 
    while 1:
       pass
