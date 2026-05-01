@@ -204,7 +204,7 @@ if __name__ == '__main__':
          consumer="async-watch-line-value",
          config={
                23: gpiod.LineSettings(
-                  edge_detection=Edge.BOTH,
+                  edge_detection=Edge.RISING,
                   bias=Bias.PULL_UP,
                   debounce_period=timedelta(milliseconds=10),
                )
