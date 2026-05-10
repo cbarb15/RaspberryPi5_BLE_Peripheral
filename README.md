@@ -16,4 +16,4 @@ Run:
 * pip3 install lgpio
 
 
-This project now uses pybind to call the Peripheral functions. It is using Pybind and will need to be cloned
+This project now uses pybind to call the Peripheral functions. It is using Pybind and will need to be cloned. Will also be using WiringPi.
