@@ -4,7 +4,7 @@
 #include <thread>
 #include <chrono>
 
-#include "WiringPi/wiringPi/wiringPi.h"
+// #include "WiringPi/wiringPi/wiringPi.h"
 
 namespace py = pybind11;
 using namespace std;
@@ -14,9 +14,6 @@ using namespace std;
 void button_interrupt();
 
 int main() {
-    py::scoped_interpreter guard{};
-
-
     wiringPiSetupGpio();
 
     pinMode(IRQpin, INPUT);
@@ -28,5 +25,8 @@ int main() {
 }
 
 void button_interrupt() {
-    cout << "Button Pushed" << endl;
+    py::scoped_interpreter guard{};
+    py::module_ peripheralModule = py::module_::import("peripheral");
+    cout << "Start Adv" << endl;
+    peripheralModule.attr("start_advertising_and_create_GATT_app")();
 }
