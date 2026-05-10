@@ -4,23 +4,29 @@
 #include <thread>
 #include <chrono>
 
+#include "WiringPi/wiringPi/wiringPi.h"
+
 namespace py = pybind11;
 using namespace std;
+
+#define IRQpin     16
 
 void button_interrupt();
 
 int main() {
     py::scoped_interpreter guard{};
-    wiringPiSetup();
-    pinMode(4, INPUT);
-    pullUpDnControl(4, PUD_DOWN);
-    wiringPiISR(4, INT_EDGE_RISING, &button_interrupt);
+
+
+    wiringPiSetupGpio();
+
+    pinMode(IRQpin, INPUT);
+    pullUpDnControl(IRQpin, PUD_UP);
+
+    wiringPiISR(IRQpin, INT_EDGE_FALLING, &button_interrupt);
 
     while (1) {}
 }
 
 void button_interrupt() {
-    cout << "Button pushed" << endl;
-    // py::module_ peripheral = py::module_::import("peripheral");
-    // peripheral.attr("start_advertising_and_create_GATT_app")();
+    cout << "Button Pushed" << endl;
 }
