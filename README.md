@@ -14,3 +14,6 @@ Run:
 
 * sudo apt-get install swig python3-lgpio liblgpio-dev python3-setuptools python-dev-is-python3
 * pip3 install lgpio
+
+
+This project now uses pybind to call the Peripheral functions. It is using Pybind and will need to be cloned. Will also be using WiringPi.
