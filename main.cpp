@@ -7,6 +7,8 @@ using namespace std;
 int main() {
     py::scoped_interpreter guard{};
 
-    py::print("Hello World!");
+    py::module_ peripheral = py::module_::import("peripheral");
+    peripheral.attr("start_advertising_and_create_GATT_app")();
 
+    return 0;
 }

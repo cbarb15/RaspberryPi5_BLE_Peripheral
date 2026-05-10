@@ -55,7 +55,7 @@ def properties_changed(interface, changed, invalidated, path):
    if interface == bluetooth_constants.DEVICE_INTERFACE:
       if "Connected" in changed:
          set_connected_status(changed["Connected"])
-      
+
 def interfaces_added(path, interfaces):
    if bluetooth_constants.DEVICE_INTERFACE in interfaces:
       properties = interfaces[bluetooth_constants.DEVICE_INTERFACE]
@@ -76,7 +76,7 @@ def start_advertising():
     adv_mgr_interface.RegisterAdvertisement(adv.get_path(), {},
                                         reply_handler=register_ad_cb,
                                         error_handler=register_ad_error_cb)
-    
+
 def register_app_cb():
    print("GATT application registered")
 
@@ -142,27 +142,6 @@ def async_watch_line_value(chip_path, line_offset, done_fd):
                 if edge_event.event_type is edge_event.Type.RISING_EDGE:
                   print("Read Uart")
                   start_advertising_and_create_GATT_app()
-            
-               
-def uart_intterupt_task():
-   global uart_line_request
-   print("Starting interupt task")
-   done_fd = os.eventfd(0)
-   poll = select.poll()
-   poll.register(uart_line_request.fd, select.POLLIN)
-   # Other fds could be registered with the poll and be handled
-   # separately using the return value (fd, event) from poll():
-   poll.register(done_fd, select.POLLIN)
-   while True:
-      for fd, _event in poll.poll():
-         if fd == done_fd:
-            # perform any cleanup before exiting...
-            return
-         # handle any edge events
-         edge_event = uart_line_request.read_edge_events()[0]
-         if edge_event.event_type is edge_event.Type.RISING_EDGE:
-            print("Read Uart")
-            start_advertising_and_create_GATT_app()
 
 def battery_monitor_task():
    global battery_line_request
@@ -177,61 +156,15 @@ def battery_monitor_task():
       values = battery_monitor.request.get_values()
 
       ac_power_state = values[battery_monitor.PLD_PIN] if isinstance(values, dict) else values[0]
-        
+
       # Read battery information
       voltage = battery_monitor.readVoltage()
       battery_status = battery_monitor.get_battery_status(voltage)
       capacity = battery_monitor.readCapacity()
-      uart.write((int(22)).to_bytes(2, byteorder='big'))
-      
+      # uart.write((int(22)).to_bytes(2, byteorder='big'))
+
       # Display current status
-      # print(f"Battery: {capacity:.1f}% ({battery_status}), Voltage: {voltage:.2f}V, AC Power: {'Plugged in' if ac_power_state == gpiod.line.Value.ACTIVE else 'Unplugged'}")
-        
+      print(f"Battery: {capacity:.1f}% ({battery_status}), Voltage: {voltage:.2f}V, AC Power: {'Plugged in' if ac_power_state == gpiod.line.Value.ACTIVE else 'Unplugged'}")
+
       # Wait for next monitoring interval
       time.sleep(MONITOR_INTERVAL)
-
-if __name__ == '__main__':   
-   dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-   bus = dbus.SystemBus()
-   
-   global uart_line_request
-   global battery_line_request
-   global uart
-
-   done_fd = os.eventfd(0)
-   uart_line_request = gpiod.request_lines(
-         chip_path,
-         consumer="async-watch-line-value",
-         config={
-               23: gpiod.LineSettings(
-                  edge_detection=Edge.RISING,
-                  bias=Bias.PULL_UP,
-                  debounce_period=timedelta(milliseconds=10),
-               )
-         },
-      )
-
-   battery_line_request = gpiod.request_lines(
-               '/dev/gpiochip0',
-               consumer="PLD",
-               config={
-                     6 : gpiod.LineSettings(direction=Direction.INPUT),
-               }
-            )
-
-   try: 
-      uart = serial.Serial("/dev/ttyAMA0", baudrate=115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, bytesize= serial.EIGHTBITS, timeout=1)
-   except serial.SerialException as e:
-      serial.close()
-      print(f"Error opening serial port: {e}")
-
-   uart_task = multiprocessing.Process(target=uart_intterupt_task)
-   print("Starting UART Task")
-   uart_task.start()
-
-   bat_monitor_task = multiprocessing.Process(target=battery_monitor_task)
-   print("Starting battery monitoring task")
-   bat_monitor_task.start()
-
-   while 1:
-      pass
