@@ -87,6 +87,8 @@ def register_app_error_cb(error):
 def start_advertising_and_create_GATT_app():
    global adv
    global adv_mgr_interface
+   dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+   bus = dbus.SystemBus()
    adapter_path = bluetooth_constants.BLUEZ_NAMESPACE + bluetooth_constants.ADAPTER_NAME
    print(adapter_path)
 
@@ -111,37 +113,6 @@ def start_advertising_and_create_GATT_app():
    service_manager.RegisterApplication(app.get_path(), {}, reply_handler=register_app_cb, error_handler=register_app_error_cb)
 
    mainloop.run()
-
-def async_watch_line_value(chip_path, line_offset, done_fd):
-    global uart
-    # Assume a button connecting the pin to ground,
-    # so pull it up and provide some debounce.
-    with gpiod.request_lines(
-        chip_path,
-        consumer="async-watch-line-value",
-        config={
-            line_offset: gpiod.LineSettings(
-                edge_detection=Edge.BOTH,
-                bias=Bias.PULL_UP,
-                debounce_period=timedelta(milliseconds=10),
-            )
-        },
-    ) as request:
-        poll = select.poll()
-        poll.register(request.fd, select.POLLIN)
-        # Other fds could be registered with the poll and be handled
-        # separately using the return value (fd, event) from poll():
-        poll.register(done_fd, select.POLLIN)
-        while True:
-            for fd, _event in poll.poll():
-                if fd == done_fd:
-                    # perform any cleanup before exiting...
-                    return
-                # handle any edge events
-                edge_event = request.read_edge_events()[0]
-                if edge_event.event_type is edge_event.Type.RISING_EDGE:
-                  print("Read Uart")
-                  start_advertising_and_create_GATT_app()
 
 def battery_monitor_task():
    global battery_line_request
