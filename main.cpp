@@ -5,10 +5,7 @@
 #include <thread>
 #include <chrono>
 
-#include "WiringPi/wiringPi/wiringPi.h"
 #include "WiringPi/wiringPi/wiringSerial.h"
-
-// #include "WiringPi/wiringPi/wiringPi.h"
 
 namespace py = pybind11;
 using namespace std;
@@ -24,26 +21,29 @@ void powerOffButtonInterrupt();
 int main() {
     int fd;
 
-    wiringPiSetupGpio();
+    fd = serialOpen ("/dev/ttyAMA0", 115200);
+    if (fd < 0) {
+        cout << "Unable to open serial device" << endl;
+        return 1;
+    }
 
-    pinMode(BLE_BUTTON_IRQ_PIN, INPUT);
-    pullUpDnControl(BLE_BUTTON_IRQ_PIN, PUD_DOWN);
-    pinMode(AUTO_MODE_IRQ_PIN, INPUT);
-    pullUpDnControl(AUTO_MODE_IRQ_PIN, PUD_DOWN);
-    pinMode(POWER_OFF_IRQ_PIN, INPUT);
-    pullUpDnControl(POWER_OFF_IRQ_PIN, PUD_DOWN);
-
-    wiringPiISR(BLE_BUTTON_IRQ_PIN, INT_EDGE_RISING, &bleButtonInterrupt);
-    wiringPiISR(AUTO_MODE_IRQ_PIN, INT_EDGE_RISING, &autoModeEngageButtonInterrupt);
-    wiringPiISR(POWER_OFF_IRQ_PIN, INT_EDGE_RISING, &powerOffButtonInterrupt);
-
-    // fd = serialOpen("/dev/ttyAMA0", 115200);
-    // if (fd < 0) {
-    //     cout << "Unable to open serial device" << endl;
-    // }
+    // wiringPiSetupGpio();
+    //
+    // pinMode(BLE_BUTTON_IRQ_PIN, INPUT);
+    // pullUpDnControl(BLE_BUTTON_IRQ_PIN, PUD_DOWN);
+    // pinMode(AUTO_MODE_IRQ_PIN, INPUT);
+    // pullUpDnControl(AUTO_MODE_IRQ_PIN, PUD_DOWN);
+    // pinMode(POWER_OFF_IRQ_PIN, INPUT);
+    // pullUpDnControl(POWER_OFF_IRQ_PIN, PUD_DOWN);
+    //
+    // wiringPiISR(BLE_BUTTON_IRQ_PIN, INT_EDGE_RISING, &bleButtonInterrupt);
+    // wiringPiISR(AUTO_MODE_IRQ_PIN, INT_EDGE_RISING, &autoModeEngageButtonInterrupt);
+    // wiringPiISR(POWER_OFF_IRQ_PIN, INT_EDGE_RISING, &powerOffButtonInterrupt);
 
     while (1) {
-
+        this_thread::sleep_for(chrono::seconds(3));
+        cout << "Sending uart data" << endl;
+        serialPuts(fd, "22");
    }
 }
 
