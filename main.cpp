@@ -17,6 +17,7 @@ using namespace std;
 void bleButtonInterrupt();
 void autoModeEngageButtonInterrupt();
 void powerOffButtonInterrupt();
+void uartThreadCallback(int);
 
 int main() {
     int fd;
@@ -27,24 +28,22 @@ int main() {
         return 1;
     }
 
-    // wiringPiSetupGpio();
-    //
-    // pinMode(BLE_BUTTON_IRQ_PIN, INPUT);
-    // pullUpDnControl(BLE_BUTTON_IRQ_PIN, PUD_DOWN);
-    // pinMode(AUTO_MODE_IRQ_PIN, INPUT);
-    // pullUpDnControl(AUTO_MODE_IRQ_PIN, PUD_DOWN);
-    // pinMode(POWER_OFF_IRQ_PIN, INPUT);
-    // pullUpDnControl(POWER_OFF_IRQ_PIN, PUD_DOWN);
-    //
-    // wiringPiISR(BLE_BUTTON_IRQ_PIN, INT_EDGE_RISING, &bleButtonInterrupt);
-    // wiringPiISR(AUTO_MODE_IRQ_PIN, INT_EDGE_RISING, &autoModeEngageButtonInterrupt);
-    // wiringPiISR(POWER_OFF_IRQ_PIN, INT_EDGE_RISING, &powerOffButtonInterrupt);
+    thread uartTask(uartThreadCallback, fd);
 
-    while (1) {
-        this_thread::sleep_for(chrono::seconds(3));
-        cout << "Sending uart data" << endl;
-        serialPuts(fd, "22");
-   }
+    wiringPiSetupGpio();
+
+    pinMode(BLE_BUTTON_IRQ_PIN, INPUT);
+    pullUpDnControl(BLE_BUTTON_IRQ_PIN, PUD_DOWN);
+    pinMode(AUTO_MODE_IRQ_PIN, INPUT);
+    pullUpDnControl(AUTO_MODE_IRQ_PIN, PUD_DOWN);
+    pinMode(POWER_OFF_IRQ_PIN, INPUT);
+    pullUpDnControl(POWER_OFF_IRQ_PIN, PUD_DOWN);
+
+    wiringPiISR(BLE_BUTTON_IRQ_PIN, INT_EDGE_RISING, &bleButtonInterrupt);
+    wiringPiISR(AUTO_MODE_IRQ_PIN, INT_EDGE_RISING, &autoModeEngageButtonInterrupt);
+    wiringPiISR(POWER_OFF_IRQ_PIN, INT_EDGE_RISING, &powerOffButtonInterrupt);
+
+    while (1) {}
 }
 
 void bleButtonInterrupt() {
@@ -60,4 +59,12 @@ void autoModeEngageButtonInterrupt() {
 
 void powerOffButtonInterrupt() {
     cout << "POWER OFF" << endl;
+}
+
+void uartThreadCallback(int fd) {
+    while (1) {
+        this_thread::sleep_for(chrono::seconds(3));
+        cout << "Sending uart data" << endl;
+        serialPuts(fd, "22");
+    }
 }
