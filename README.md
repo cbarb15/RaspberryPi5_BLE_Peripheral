@@ -3,7 +3,7 @@
 * pip3 install adafruit-circuitpython-ads1x15
 * sudo apt install git virtualenv build-essential python3-dev libdbus-glib-1-dev libgirepository1.0-dev
 * pip3 install dbus-python
-* pip3 install pycairo
+* pip3 install pycairo (If pycairo fails, run sudo apt install libcairo2-dev pkg-config python3-dev first. Then re install pycairo)  
 * pip3 install PyGObject
 * pip3 install adafruit-extended-bus
 * pip3 install gpiod
