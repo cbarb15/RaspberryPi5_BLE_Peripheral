@@ -17,3 +17,7 @@ Run:
 
 
 This project now uses pybind to call the Peripheral functions. It is using Pybind and will need to be cloned. Will also be using WiringPi.
+
+clone Pybind and WiringPi
+
+-> After cloning WiringPi run the ./build inside the repo
